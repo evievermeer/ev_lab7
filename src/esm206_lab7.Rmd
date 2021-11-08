@@ -1,0 +1,142 @@
+---
+title: "Lab 7 - Multiple Linear Regression"
+author: "Evie Vermeer"
+date: "11/8/2021"
+output: html_document
+---
+
+```{r setup, include=TRUE, warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(palmerpenguins)
+library(GGally)
+library(broom)
+library(kableExtra)
+library(modelsummary)
+library(stargazer)
+
+```
+
+
+### Intro to ggpairs
+
+use GGally :: ggpairs() function to create a pairs plot
+
+```{r}
+ggpairs(penguins)
+```
+
+```{r}
+penguins %>% 
+  select(species, bill_length_mm:body_mass_g) %>% 
+  ggpairs(aes(color=species))
+
+ggplot(data=penguins, aes(x=bill_depth_mm, y=body_mass_g, group=species))+
+  geom_point(aes(color=species))+
+  geom_smooth(method="lm")
+
+# If you were not to group by species, then you would be missing a critical variable and the linear regression line would be way off (show a negative relationship). 
+```
+
+### Multiple linear regression - penguins
+
+Use multiple linear regression to try to understand the relationship between multiple predictor variables and a single continuous outcome variable (body mass).
+
+```{r}
+penguin_lm <- lm(body_mass_g ~ flipper_length_mm + bill_depth_mm, data = penguins)
+
+# Return just the coefficients
+
+penguin_lm
+
+```
+How would you interpret this coefficient for flipper length? 
+On average, we expect a 1mm increase in flipper length to be associated with a 51.54 increase in penguin body mass (all other factors held equal).
+
+Use `summary` function to get more information 
+```{r}
+summary(penguin_lm)
+```
+R squared value of .76 means that 76% of the variance in the body mass of penguins can be explained by the model. 
+
+Use `broom` functions tidy and glance
+
+Use broom::tidy to get the coefficient summary in a dataframe
+Use broom::glance to get the model summary in a data frame
+
+```{r}
+penguin_lm_tidy <- tidy(penguin_lm)
+
+penguin_lm_tidy
+```
+
+Try using in-line code to refer to the bill_depth coefficient
+
+The bill depth coefficient is equal to `r penguin_lm_tidy$estimate[3]` then hit control enter when you are hovering over the code to see it pop up in real time.
+
+
+```{r}
+penguin_lm_glance <- glance(penguin_lm)
+
+penguin_lm_glance
+```
+
+### Try another model
+
+We have thought really hard, done a literature review, consulted with experts, deeply explored our data and decided that the three most critical variables to include in this model with body mass as the independent variable are:
+- flipper length
+- penguin species 
+- sex 
+
+Task: create a multiple linear regression model using those 3 predictor variables
+
+Then take a look at the model outputs and interpret the coefficients. 
+
+```{r}
+penguin_bodymass_lm <- lm(body_mass_g ~ flipper_length_mm + species + sex, data=penguins) 
+  
+  penguin_bodymass_lm
+```
+
+If everything else is held the same, we would expect on average a Gentoo penguin to weigh 836.26 grams more than an Adelie penguin. 
+
+If everything else is held the same, we would expect a chinstrap penguin to weigh 87.6 grams less than an adelie penguin. 
+
+If everything else is held the same, we would expect a male penguin on average to weight 530 grams more than a female penguin. 
+
+Categorical model practice. 
+For a female penguin that is chinstrap, you plug 180 into mm, 1 into chinstrap, 0 into gentoo, and 0 into male. 
+
+If you want to estimate the bodymass of a male adelie with flippers that are 200 mm long
+
+flipper length - 200, chinstrap - 0, gentoo - 0, male - 1 
+
+### use broom::augment to see predicted values
+
+```{r}
+augment(penguin_bodymass_lm)
+```
+
+
+### use plot to look at model diagnostics
+
+```{r}
+plot(penguin_bodymass_lm)
+```
+
+- Conceptual undestanding and expertise allows me to responsibly determine that penguin species, sex and flipper length and reasonable predictor variables (make sure you are thinking hard about variables and variable combinations)
+-Diagnostic plots all check out for normality of residuals, homoscedasticity, and no worrisome outliers (although that last one is not an assumption)
+
+### Make output tables
+
+```{r}
+modelsummary(penguin_bodymass_lm)
+```
+
+### Using stargazer
+```{r, results = "asis"}
+stargazer(penguin_bodymass_lm, type = "html")
+
+```
+
